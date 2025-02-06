@@ -1,0 +1,8 @@
+/node-modules
+/.vscode
+
+./dist
+
+*.env
+.env
+.env.*
