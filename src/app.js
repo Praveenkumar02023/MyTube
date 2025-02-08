@@ -18,11 +18,12 @@ app.use(express.static("public"));
 
 //import router
 import healthCheckRouter from "./routes/healthCheck.routes.js";
-
-import UserRouter from "./routes/user.routes.js"
+import UserRouter from "./routes/user.routes.js";
+import videoRouter from "./routes/video.routes.js";
 
 //use router
 app.use("/api/v1/healthCheck",healthCheckRouter);
 app.use("/api/v1/users",UserRouter);
+app.use("/api/v1/videos/",videoRouter);
 
 export { app };

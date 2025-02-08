@@ -11,8 +11,11 @@ dotenv.config(
 );
 
 export const verifyJWT = asyncHandler(async (req,_,next)=>{
+
     //get the access token from the request
     const incomingAccessToken = req.cookies.accessToken || req.header('Authorization')?.replace('Bearer ','');
+
+
     //check if the access token is present
     if(!incomingAccessToken){
         return next(new ApiError(401,'Access Denied'));
@@ -28,10 +31,16 @@ export const verifyJWT = asyncHandler(async (req,_,next)=>{
         if(!user){
             return next(new ApiError(401,'Invalid Access Token'));
         }
+
+
         //attach the user to the request object
         req.user = user;
+
+
         //move forward to the next middleware
         next();
+
+        
     } catch (error) {
         throw new ApiError(401, error?.message || "Invalid Access Token"); 
     }
