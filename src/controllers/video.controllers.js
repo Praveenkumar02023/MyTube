@@ -38,11 +38,14 @@ const uploadVideo = asyncHandler(async (req, res) => {
         throw new ApiError(400, 'Please provide thumbnail');
     }
 
+    //get the duration of the video
+    const duration = await getVideoDurationInSeconds(videoFilePath);
+    
     //upload on cloudinary
     const videoFile = await uploadOnCloudinary(videoFilePath);
     const thumbnail = await uploadOnCloudinary(thumbnailFilePath);
     
-    const duration = await getVideoDurationInSeconds(videoFilePath);
+   
 
     try {
 

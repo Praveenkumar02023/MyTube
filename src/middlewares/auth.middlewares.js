@@ -1,47 +1,46 @@
-import {User} from '../models/user.models.js';
-import {ApiError} from '../utils/ApiError.js';
-import {asyncHandler} from '../utils/asyncHandler.js';
+import { User } from '../models/user.models.js';
+import { ApiError } from '../utils/ApiError.js';
+import { asyncHandler } from '../utils/asyncHandler.js';
 import jwt from 'jsonwebtoken';
 import dotenv from 'dotenv';
 
-dotenv.config(
-    {
-        path:"./src/.env"
-    }
-);
+dotenv.config({
+    path: "./src/.env"
+});
 
-export const verifyJWT = asyncHandler(async (req,_,next)=>{
+export const verifyJWT = asyncHandler(async (req, _, next) => {
+    // Log the token sources
+    console.log("🔹 Cookies:", req.cookies);
+    console.log("🔹 Authorization Header:", req.header('Authorization'));
 
-    //get the access token from the request
-    const incomingAccessToken = req.cookies.accessToken || req.header('Authorization')?.replace('Bearer ','');
+    // Extract the token
+    const incomingAccessToken = req.cookies?.accessToken || req.header('Authorization')?.replace('Bearer ', '');
+    
+    // Log the extracted token
+    console.log("🔹 Extracted Token:", incomingAccessToken);
 
-
-    //check if the access token is present
-    if(!incomingAccessToken){
-        return next(new ApiError(401,'Access Denied'));
+    // Check if token exists
+    if (!incomingAccessToken) {
+        return next(new ApiError(401, 'Access Denied: No Token Provided'));
     }
 
     try {
-        //decode the access token
-        const decodedToken = jwt.verify(incomingAccessToken,process.env.USER_ACCESS_TOKEN);
+        // Decode the token
+        const decodedToken = jwt.verify(incomingAccessToken, process.env.USER_ACCESS_TOKEN);
+        console.log("🔹 Decoded Token:", decodedToken.id);
 
-        //get the user from access token
-        const user = await User.findById(decodedToken._id).select("-password -refreshToken");
+        // Fetch user
+        const user = await User.findById(decodedToken.id).select("-password -refreshToken");
 
-        if(!user){
-            return next(new ApiError(401,'Invalid Access Token'));
+        if (!user) {
+            return next(new ApiError(401, 'Access Denied: Invalid User'));
         }
 
-
-        //attach the user to the request object
+        // Attach user to request
         req.user = user;
-
-
-        //move forward to the next middleware
         next();
-
-        
     } catch (error) {
-        throw new ApiError(401, error?.message || "Invalid Access Token"); 
+        console.error("🔹 JWT Verification Error:", error.message);
+        return next(new ApiError(401, "Access Denied: Invalid Token"));
     }
 });
