@@ -4,6 +4,8 @@ import { ApiError } from '../utils/ApiError.js';
 import { uploadOnCloudinary, clearCloudinary } from '../utils/cloudinary.js';
 import { getVideoDurationInSeconds } from "get-video-duration";
 import { ApiResponse } from '../utils/ApiResponse.js';
+import { get } from 'mongoose';
+import { User } from '../models/user.models.js';
 
 const publishVideo = asyncHandler(async (req, res) => {
     const { videoId } = req.body;
@@ -92,4 +94,47 @@ const uploadVideo = asyncHandler(async (req, res) => {
     }
 });
 
-export { uploadVideo, publishVideo };
+const deleteVideo = asyncHandler(async (req, res) => {
+
+    //get the video id from the request body
+    //check if the video exists
+    //check if the video belongs to the user
+    //delete the video from cloudinary
+    //delete the video from the database
+    //return success response
+
+
+    const {videoId} = req.body;
+
+    if(!videoId){
+        throw new ApiError(400, 'Please provide video ID');
+    }
+
+    const video = await Video.findById(videoId);
+
+    if(!video){
+        throw new ApiError(404, 'Video not found');
+    }
+
+    if(video.owner.toString() !== req.user.id.toString()){
+        throw new ApiError(403, 'Unauthorized request');
+    }
+
+
+    //delete the video from cloudinary
+    await clearCloudinary(video.videoFile.public_id, 'video');
+    await clearCloudinary(video.thumbnail.public_id, 'image');
+
+
+    try {
+        //delete the video from the database
+        await video.deleteOne({_id : videoId});
+    } catch (error) {
+        console.error("Error deleting video from database:", error);
+        throw new ApiError(500, 'Failed to delete video');
+    }
+   
+    return res.status(200).json(new ApiResponse(200, 'Video deleted successfully'));
+});
+
+export { uploadVideo, publishVideo, deleteVideo };
