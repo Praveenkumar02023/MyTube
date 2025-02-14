@@ -9,38 +9,40 @@ dotenv.config({
 });
 
 export const verifyJWT = asyncHandler(async (req, _, next) => {
-    // Log the token sources
-    console.log("🔹 Cookies:", req.cookies);
-    console.log("🔹 Authorization Header:", req.header('Authorization'));
-
-    // Extract the token
-    const incomingAccessToken = req.cookies?.accessToken || req.header('Authorization')?.replace('Bearer ', '');
-    
-    // Log the extracted token
-    console.log("🔹 Extracted Token:", incomingAccessToken);
-
-    // Check if token exists
-    if (!incomingAccessToken) {
-        return next(new ApiError(401, 'Access Denied: No Token Provided'));
+    // 1️⃣ Extract the Authorization header
+    const authHeader = req.header('Authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return next(new ApiError(401, 'Access Denied: Missing or Malformed Token'));
     }
 
+    // 2️⃣ Extract the JWT token
+    const token = authHeader.split(' ')[1];
+
     try {
-        // Decode the token
-        const decodedToken = jwt.verify(incomingAccessToken, process.env.USER_ACCESS_TOKEN);
-        console.log("🔹 Decoded Token:", decodedToken.id);
+        // 3️⃣ Verify the JWT token
+        const decodedToken = jwt.verify(token, process.env.USER_ACCESS_TOKEN);
 
-        // Fetch user
-        const user = await User.findById(decodedToken.id).select("-password -refreshToken");
-
-        if (!user) {
-            return next(new ApiError(401, 'Access Denied: Invalid User'));
+        if (!decodedToken?.id) {
+            return next(new ApiError(401, 'Access Denied: Invalid Token Payload'));
         }
 
-        // Attach user to request
+        // 4️⃣ Fetch the user from DB (excluding password & refreshToken)
+        const user = await User.findById(decodedToken.id).select('-password -refreshToken');
+
+        if (!user) {
+            return next(new ApiError(401, 'Access Denied: User Not Found'));
+        }
+
+        // 5️⃣ Attach the user object to the request
         req.user = user;
         next();
     } catch (error) {
         console.error("🔹 JWT Verification Error:", error.message);
+
+        if (error.name === "TokenExpiredError") {
+            return next(new ApiError(401, "Access Denied: Token Expired"));
+        }
+
         return next(new ApiError(401, "Access Denied: Invalid Token"));
     }
 });

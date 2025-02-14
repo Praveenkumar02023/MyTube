@@ -145,76 +145,68 @@ const loginUser = asyncHandler(async (req,res)=>{
   };
 
   return res.status(200)
-    .cookie("accessToken",accessToken,options)
-    .cookie("refreshToken",refreshToken,options)   
-    .json(
-      new ApiResponse(
-        200,
-        {
-          user:loggedInUser,accessToken,refreshToken
-        },
-        "User logged in successfully :)"
-      )
-    );
-
+  .cookie("refreshToken", refreshToken, options)  // Store only refreshToken in cookies
+  .json(new ApiResponse(200, { user: loggedInUser, accessToken }, "User logged in successfully :)"));
 
 });
 
-const refreshAccessToken = asyncHandler(async (req,res)=>{
-  //get refresh token from cookies
-  const incomingRefreshToken = req.cookies.refreshToken || req.body.refreshToken;
-  //check if resfresh token exists
-  if(!incomingRefreshToken){
-    throw new ApiError(401,"Unauthorized :(");
-  }
-
+const refreshAccessToken = asyncHandler(async (req, res) => {
   try {
-    //get the decoded refresh token
-    const decodedToken = jwt.verify(incomingRefreshToken,process.env.USER_REFRESH_TOKEN);
+    // 1️⃣ Get the refresh token from cookies or body
+    const incomingRefreshToken = req.cookies?.refreshToken || req.body?.refreshToken;
+    console.log("🔹 Incoming Refresh Token:", incomingRefreshToken);
 
-    if(!decodedToken){
-      throw new ApiError(401,"Token did not match :(");
-    }
-    //get the user from the decoded token
-    const user = await User.findById(decodedToken._id);
-
-    if(!user){
-      throw new ApiError(401,"User not found :(");
+    if (!incomingRefreshToken) {
+      throw new ApiError(401, "Unauthorized: No refresh token provided.");
     }
 
-    //verify if the current user have the same refresh token
-    if(user.refreshToken !== incomingRefreshToken){
-      throw new ApiError(401,"Unauthorized :(");
+    // 2️⃣ Verify the refresh token
+    let decodedToken;
+    try {
+      decodedToken = jwt.verify(incomingRefreshToken, process.env.USER_REFRESH_TOKEN);
+      console.log("🔹 Decoded Token:", decodedToken);
+    } catch (error) {
+      throw new ApiError(403, "Forbidden: Invalid refresh token.");
     }
 
-    //generate new access and refresh token
-    const {accessToken,refreshToken : newRefreshToken} = 
-    await generateAccessAndRefreshToken(user._id);
+    // 3️⃣ Find the user in the database
+    const user = await User.findById(decodedToken.id);
 
-    //send the new access token with options
+    if (!user) {
+      throw new ApiError(404, "User not found.");
+    }
 
-    const options = {
+    // 4️⃣ Check if the refresh token matches the one stored in the database
+    if (user.refreshToken !== incomingRefreshToken) {
+      throw new ApiError(403, "Unauthorized: Token mismatch.");
+    }
+
+    // 5️⃣ Generate new access and refresh tokens
+    const { accessToken, refreshToken: newRefreshToken } =
+      await generateAccessAndRefreshToken(user._id);
+
+    // 6️⃣ Update the user's refresh token in the database
+    user.refreshToken = newRefreshToken;
+    await user.save({ validateBeforeSave: false });
+
+    // 7️⃣ Set the new refresh token as an HTTP-only cookie
+    const cookieOptions = {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
+      sameSite: "Strict",
     };
 
     res.status(200)
-    .cookie("accessToken",accessToken,options)
-    .cookie("refreshToken",newRefreshToken,options)
-    .json(
-      new ApiResponse(
-        200,
-        {
-          accessToken,
-          refreshToken:newRefreshToken
-        },
-        "Access token refreshed successfully :)"
-      )
-    );
+      .cookie("refreshToken", newRefreshToken, cookieOptions)
+      .json(new ApiResponse(200, { accessToken }, "Access token refreshed successfully."));
+
   } catch (error) {
-    throw new ApiError(401,"Refresh token not found :(");
+    console.error("🔹 Refresh Token Error:", error.message);
+    throw new ApiError(401, `Failed to refresh access token: ${error.message}`);
   }
 });
+
+
 
 
 const logoutUser = asyncHandler(async (req,res)=>{
@@ -244,9 +236,8 @@ const logoutUser = asyncHandler(async (req,res)=>{
 
   //clear the cookies
   res.status(200)
-  .clearCookie("accessToken",options)
   .clearCookie("refreshToken",options)
-  .json(new ApiResponse(200,"User logged out successfully :)"));
+  .json(new ApiResponse(200,{accessToken},"User logged out successfully :)"));
     
   } catch (error) {
     throw new ApiError(401,`Error logging out User :( ${error.message}`);
