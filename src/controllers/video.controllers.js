@@ -137,4 +137,30 @@ const deleteVideo = asyncHandler(async (req, res) => {
     return res.status(200).json(new ApiResponse(200, 'Video deleted successfully'));
 });
 
-export { uploadVideo, publishVideo, deleteVideo };
+
+const getVideoById = asyncHandler(async (req, res) => {
+    //get the video id from the request body
+    //check if the video exists
+    //check if the video is published
+    //return the video
+
+    const {videoId} = req.body;
+    if(!videoId){
+        throw new ApiError(400, 'Please provide video ID');
+    }
+
+    const video = await Video.findById(videoId);
+
+    if(!video){
+        throw new ApiError(404, 'Video not found');
+    }
+
+    if(!video.isPublished){
+        throw new ApiError(404, 'Video not Available');
+    }
+    
+    return res.status(200).json(new ApiResponse(200, 'Video retrieved successfully', video));
+
+});
+
+export { uploadVideo, publishVideo, deleteVideo ,getVideoById};
