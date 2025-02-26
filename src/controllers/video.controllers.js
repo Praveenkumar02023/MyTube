@@ -163,4 +163,41 @@ const getVideoById = asyncHandler(async (req, res) => {
 
 });
 
-export { uploadVideo, publishVideo, deleteVideo ,getVideoById};
+const addToWatchHistory = asyncHandler(async (req, res) => {
+
+    //get user and videoId from req.body and if video not exist in watchHistory then add it 
+    //otherwise remove the previous and add to the end again.
+
+
+    const user = await User.findById(req.user.id);
+    
+    if(!user){
+        throw new ApiError(404, 'User not found');
+    }
+
+    const { videoId } = req.body;
+
+    if (!videoId) {
+        throw new ApiError(400, 'Please provide video ID');
+    }
+
+    const video = await Video.findById(videoId);
+    if (!video) {
+        throw new ApiError(404, 'Video not found');
+    }
+
+
+    //if not exist then add to watch history else remove previous and add to the end again.
+    if (!user.watchHistory.includes(videoId)) {
+        user.watchHistory.push(videoId);
+    }else{
+        user.watchHistory = user.watchHistory.filter(item => item !== videoId);
+        user.watchHistory.push(videoId);
+    }
+
+    await user.save();
+
+    return res.status(200).json(new ApiResponse(200, 'Video added to watch history successfully', user.watchHistory));
+});
+
+export { uploadVideo, publishVideo, deleteVideo ,getVideoById,addToWatchHistory};

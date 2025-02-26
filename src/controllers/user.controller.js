@@ -386,7 +386,17 @@ const updateUserCoverImage = asyncHandler(async (req,res)=>{
 
 });
 
+const userWatchHistory = asyncHandler(async (req,res)=>{
 
+  //return the user watch history
+  const user = await User.findById(req.user._id).select("watchHistory");
+  
+  if(!user){
+    throw new ApiError(404,"User not found :(");
+  }
 
+  return res.status(200)
+            .json(new ApiResponse(200,user.watchHistory,"User watch history found successfully :)"));
+});
 
-export { registerUser,loginUser,refreshAccessToken,logoutUser,updateCurrentPassword,getCurrentUser,updateUserDetails,updateUserAvatar,updateUserCoverImage };
+export { registerUser,loginUser,refreshAccessToken,logoutUser,updateCurrentPassword,getCurrentUser,updateUserDetails,updateUserAvatar,updateUserCoverImage,userWatchHistory };
