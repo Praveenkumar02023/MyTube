@@ -4,7 +4,6 @@ import { ApiError } from '../utils/ApiError.js';
 import { uploadOnCloudinary, clearCloudinary } from '../utils/cloudinary.js';
 import { getVideoDurationInSeconds } from "get-video-duration";
 import { ApiResponse } from '../utils/ApiResponse.js';
-import { get } from 'mongoose';
 import { User } from '../models/user.models.js';
 
 const publishVideo = asyncHandler(async (req, res) => {
