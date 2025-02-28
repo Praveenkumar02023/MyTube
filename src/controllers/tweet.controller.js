@@ -1,15 +1,9 @@
 import {asyncHandler} from "../utils/asyncHandler.js";
 import {ApiError} from "../utils/ApiError.js";
 import { User } from "../models/user.models.js";
-import dotenv from "dotenv"
 import {ApiResponse} from "../utils/ApiResponse.js";
 import { Tweet } from "../models/tweet.models.js";
 
-dotenv.config(
-  {
-     path:"./src/.env"
-  }
-)
 
 const createAndPostTweet = asyncHandler(async (req,res)=>{
 
