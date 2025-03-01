@@ -36,7 +36,7 @@ const likeVideo = asyncHandler(async (req,res)=>{
 });
 
 
-//testing is remaining for this.
+
 const likeComment = asyncHandler(async (req,res)=>{
     //get user and commentId from req.body and check if user is loggedIn
     //if yes then check if commentId is present in req.body and then check if comment is present in database
